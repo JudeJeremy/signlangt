@@ -1,0 +1,66 @@
+body { 
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 800px;
+}
+.video-container {
+    position: relative;
+    width: 640px;
+    height: 480px;
+    margin-bottom: 20px;
+}
+#videoElement {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: #000;
+    border: 2px solid black;
+}
+#canvasElement {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+}
+.transcription-container {
+    width: 640px;
+    margin-top: 20px;
+}
+#transcriptionOutput {
+    width: 100%;
+    min-height: 100px;
+    border: 1px solid #ccc;
+    padding: 10px;
+    font-size: 18px;
+    background-color: #f9f9f9;
+}
+.status {
+    margin-top: 10px;
+    color: #666;
+}
+.controls {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+}
+button {
+    padding: 8px 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+button:hover {
+    background-color: #45a049;
+}

@@ -9,16 +9,16 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'front.html')
+        main: resolve(__dirname, 'public/index.html')
       }
     }
   },
   // Specify the entry point for development mode
-  root: './',
-  publicDir: './',
+  root: './public',
+  publicDir: './public',
   resolve: {
     alias: {
-      '/': './'
+      '/': './public'
     }
   }
 });

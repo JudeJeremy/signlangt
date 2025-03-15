@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Language Transcription</title>
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- MediaPipe dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils@0.6/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/hands.js" crossorigin="anonymous"></script>
+    <!-- Client JS -->
+    <script src="js/client.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Sign Language Transcription</h1>
+        
+        <div class="video-container">
+            <video id="videoElement" autoplay></video>
+            <canvas id="canvasElement"></canvas>
+        </div>
+        
+        <div class="status" id="statusElement">Loading hand tracking model...</div>
+        
+        <div class="transcription-container">
+            <h2>Transcription</h2>
+            <div id="transcriptionOutput">Sign language transcription will appear here...</div>
+        </div>
+        
+        <div class="controls">
+            <button id="clearButton">Clear Transcription</button>
+        </div>
+    </div>
+</body>
+</html>
