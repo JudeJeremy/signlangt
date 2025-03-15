@@ -3,36 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Language Transcription</title>
+    <title>SignLangT - ASL Letter Detection</title>
     <!-- CSS -->
     <link rel="stylesheet" href="css/styles.css">
-    <!-- MediaPipe dependencies -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils@0.6/control_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3/drawing_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/hands.js" crossorigin="anonymous"></script>
+    <!-- Socket.IO -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <!-- Client JS -->
     <script src="js/client.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1>Sign Language Transcription</h1>
+        <header>
+            <h1>SignLangT</h1>
+            <p class="subtitle">American Sign Language Letter Detection</p>
+        </header>
         
-        <div class="video-container">
-            <video id="videoElement" autoplay></video>
-            <canvas id="canvasElement"></canvas>
-        </div>
-        
-        <div class="status" id="statusElement">Loading hand tracking model...</div>
-        
-        <div class="transcription-container">
-            <h2>Transcription</h2>
-            <div id="transcriptionOutput">Sign language transcription will appear here...</div>
-        </div>
-        
-        <div class="controls">
-            <button id="clearButton">Clear Transcription</button>
-        </div>
+        <main>
+            <div class="video-container">
+                <video id="videoElement" autoplay style="display: none;"></video>
+                <canvas id="canvasElement"></canvas>
+                <div class="status-container">
+                    <div class="status" id="statusElement">Initializing hand tracking...</div>
+                    <div class="confidence-bar">
+                        <div class="confidence-label">Confidence:</div>
+                        <div class="confidence-meter">
+                            <div id="confidenceElement" class="confidence-level"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="transcription-container">
+                <h2>Detected Letters</h2>
+                <div id="transcriptionOutput" class="transcription-output"></div>
+                <div class="controls">
+                    <button id="clearButton" class="clear-button">Clear Text</button>
+                </div>
+            </div>
+
+            <div class="guide-container">
+                <h2>Hand Position Guide</h2>
+                <p>Place your hand in the center of the camera view, within the dotted box.</p>
+                <p>Make sure your hand is well-lit and clearly visible.</p>
+                <div class="tips">
+                    <h3>Tips:</h3>
+                    <ul>
+                        <li>Keep your hand steady for better recognition</li>
+                        <li>Face your palm towards the camera</li>
+                        <li>Ensure all fingers are visible</li>
+                        <li>Wait for high confidence scores (green) for best results</li>
+                    </ul>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Supported Letters: A-Z in American Sign Language</p>
+        </footer>
     </div>
 </body>
 </html>

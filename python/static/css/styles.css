@@ -1,0 +1,223 @@
+/* Base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    background-color: #f0f2f5;
+    color: #333;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Header */
+header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+h1 {
+    color: #2c3e50;
+    font-size: 2.5em;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    color: #7f8c8d;
+    font-size: 1.2em;
+}
+
+/* Main content layout */
+main {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 20px;
+}
+
+/* Video container */
+.video-container {
+    grid-column: 1;
+    background: #fff;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+#canvasElement {
+    width: 100%;
+    border-radius: 5px;
+    background-color: #000;
+}
+
+/* Status and confidence display */
+.status-container {
+    margin-top: 15px;
+}
+
+.status {
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+.status.success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status.error {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.status.info {
+    background-color: #e2e3e5;
+    color: #383d41;
+}
+
+/* FPS display */
+.fps-display {
+    background-color: #343a40;
+    color: #4CAF50;
+    padding: 8px 12px;
+    border-radius: 5px;
+    font-family: monospace;
+    font-size: 14px;
+    margin-bottom: 10px;
+    display: inline-block;
+    font-weight: bold;
+}
+
+/* Confidence meter */
+.confidence-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.confidence-label {
+    min-width: 80px;
+    font-weight: bold;
+}
+
+.confidence-meter {
+    flex-grow: 1;
+    height: 20px;
+    background-color: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.confidence-level {
+    height: 100%;
+    width: 0%;
+    background-color: #4CAF50;
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+/* Transcription container */
+.transcription-container {
+    background: #fff;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.transcription-output {
+    min-height: 100px;
+    margin: 15px 0;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    font-size: 1.2em;
+    line-height: 1.4;
+}
+
+/* Guide container */
+.guide-container {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    background: #fff;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.guide-container h2 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+.guide-container p {
+    margin-bottom: 15px;
+    color: #555;
+}
+
+.tips {
+    margin-top: 20px;
+}
+
+.tips h3 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.tips ul {
+    list-style-position: inside;
+    color: #555;
+}
+
+.tips li {
+    margin-bottom: 8px;
+}
+
+/* Controls */
+.controls {
+    margin-top: 15px;
+    text-align: right;
+}
+
+.clear-button {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.clear-button:hover {
+    background-color: #5a6268;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    margin-top: 30px;
+    padding: 20px;
+    color: #6c757d;
+    border-top: 1px solid #dee2e6;
+}
+
+/* Responsive design */
+@media (max-width: 900px) {
+    main {
+        grid-template-columns: 1fr;
+    }
+    
+    .guide-container {
+        grid-column: 1;
+        grid-row: auto;
+    }
+}

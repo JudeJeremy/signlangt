@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SignLangT - ASL Letter Detection</title>
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <!-- Socket.IO -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <!-- Client JS -->
+    <script src="{{ url_for('static', filename='js/client.js') }}"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>SignLangT</h1>
+            <p class="subtitle">American Sign Language Letter Detection</p>
+        </header>
+        
+        <main>
+            <div class="video-container">
+                <video id="videoElement" autoplay style="display: none;"></video>
+                <canvas id="canvasElement"></canvas>
+                <div class="status-container">
+                    <div class="status" id="statusElement">Initializing hand tracking...</div>
+                    <div class="fps-display" id="clientFpsElement">Client: 0 FPS | Server: 0 FPS</div>
+                    <div class="confidence-bar">
+                        <div class="confidence-label">Confidence:</div>
+                        <div class="confidence-meter">
+                            <div id="confidenceElement" class="confidence-level"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="transcription-container">
+                <h2>Detected Letters</h2>
+                <div id="transcriptionOutput" class="transcription-output"></div>
+                <div class="controls">
+                    <button id="clearButton" class="clear-button">Clear Text</button>
+                </div>
+            </div>
+
+            <div class="guide-container">
+                <h2>Hand Position Guide</h2>
+                <p>Place your hand in the center of the camera view, within the dotted box.</p>
+                <p>Make sure your hand is well-lit and clearly visible.</p>
+                <div class="tips">
+                    <h3>Tips:</h3>
+                    <ul>
+                        <li>Keep your hand steady for better recognition</li>
+                        <li>Face your palm towards the camera</li>
+                        <li>Ensure all fingers are visible</li>
+                        <li>Wait for high confidence scores (green) for best results</li>
+                    </ul>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Supported Letters: A-Z in American Sign Language</p>
+        </footer>
+    </div>
+</body>
+</html>
