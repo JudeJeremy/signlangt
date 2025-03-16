@@ -7,6 +7,12 @@ import os
 import time
 import math
 
+# Import our custom ASL recognizer
+from tflite_asl_recognizer import TFLiteASLRecognizer
+
+# Import the model downloader
+from download_gesture_models import download_gesture_models
+
 class HandTracker:
     def __init__(self):
         # Initialize MediaPipe solutions
@@ -16,12 +22,17 @@ class HandTracker:
         
         # Initialize MediaPipe Hands for landmark detection
         # We'll use this as a fallback and for visualization
+        # Use 3D model for better accuracy
         self.hands = self.mp_hands.Hands(
             static_image_mode=False,
             max_num_hands=1,
             min_detection_confidence=0.5,
-            min_tracking_confidence=0.5
+            min_tracking_confidence=0.5,
+            model_complexity=1  # Use more complex model for better 3D tracking
         )
+        
+        # Flag to indicate if we're using 3D landmarks
+        self.use_3d_landmarks = True
         
         # Initialize MediaPipe GestureRecognizer if available
         self.use_gesture_recognizer = self._setup_gesture_recognizer()
@@ -106,53 +117,47 @@ class HandTracker:
 
     def _setup_gesture_recognizer(self):
         """
-        Set up the MediaPipe GestureRecognizer if available.
+        Set up the ASL gesture recognizer.
         Returns True if setup was successful, False otherwise.
         """
         try:
-            # Check if the necessary modules are available
-            from mediapipe.tasks import python
-            from mediapipe.tasks.python import vision
+            # Download the gesture models if needed
+            model_files = download_gesture_models()
             
-            # Get the current directory
-            base_dir = os.path.dirname(os.path.abspath(__file__))
+            if not model_files:
+                print("Gesture models not available. Falling back to basic hand tracking with custom gesture detection")
+                return False
             
-            # Path to the gesture recognizer model
-            # First check if a custom ASL model exists
-            model_path = os.path.join(base_dir, 'asl_gesture_recognizer.task')
+            # Get the path to the TensorFlow Lite model
+            models_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
+            model_path = os.path.join(models_dir, "asl_model.tflite")
             
-            # If custom model doesn't exist, check for the default model in the same directory
             if not os.path.exists(model_path):
-                default_model_path = os.path.join(base_dir, 'gesture_recognizer.task')
+                print(f"ASL model not found at {model_path}. Falling back to basic hand tracking")
+                return False
                 
-                # If the default model exists in our directory, use it
-                if os.path.exists(default_model_path):
-                    model_path = default_model_path
-                    print(f"Using gesture recognizer model at: {model_path}")
-                else:
-                    # If no model exists in our directory, use the built-in model path
-                    # MediaPipe will try to download it automatically
-                    model_path = 'gesture_recognizer.task'
-                    print("No local model found. MediaPipe will attempt to download the model automatically.")
+            try:
+                # Initialize the TensorFlow Lite ASL Recognizer
+                self.asl_recognizer = TFLiteASLRecognizer(model_path)
+                
+                # Store the recognizer as the gesture_recognizer for compatibility with existing code
+                self.gesture_recognizer = self.asl_recognizer
+                
+                print("TensorFlow Lite ASL Recognizer initialized successfully")
+                
+                # Test the recognizer with a dummy input to make sure it works
+                # This will catch issues with placeholder models
+                dummy_landmarks = {i: {'x': 0.5, 'y': 0.5, 'z': 0.0} for i in range(21)}
+                _, _ = self.asl_recognizer.recognize(dummy_landmarks)
+                
+                return True
+            except Exception as e:
+                print(f"Error testing ASL Recognizer: {e}")
+                print("The model file may be a placeholder. Falling back to custom detection.")
+                return False
             
-            # Create the GestureRecognizer
-            base_options = python.BaseOptions(model_asset_path=model_path)
-            options = vision.GestureRecognizerOptions(
-                base_options=base_options,
-                running_mode=vision.RunningMode.IMAGE,
-                num_hands=1
-            )
-            self.gesture_recognizer = vision.GestureRecognizer.create_from_options(options)
-            
-            print("MediaPipe GestureRecognizer initialized successfully")
-            return True
-            
-        except (ImportError, AttributeError) as e:
-            print(f"MediaPipe GestureRecognizer not available: {e}")
-            print("Falling back to basic hand tracking with custom gesture detection")
-            return False
         except Exception as e:
-            print(f"Error setting up GestureRecognizer: {e}")
+            print(f"Error setting up ASL Recognizer: {e}")
             print("Falling back to basic hand tracking with custom gesture detection")
             return False
 
@@ -180,122 +185,110 @@ class HandTracker:
         current_time = time.time()
         
         if self.use_gesture_recognizer:
-            # Use MediaPipe GestureRecognizer
+            # Use OpenCV ASL Recognizer
             try:
-                # Create MediaPipe Image
-                from mediapipe.tasks.python.vision.core.vision_task_running_mode import VisionTaskRunningMode
-                from mediapipe.framework.formats import image as mp_image
+                # Process the frame with MediaPipe Hands first to get landmarks
+                rgb_frame.flags.writeable = False
+                results = self.hands.process(rgb_frame)
+                rgb_frame.flags.writeable = True
                 
-                mp_img = mp_image.Image(image_format=mp_image.ImageFormat.SRGB, data=rgb_frame)
-                
-                # Process the image
-                recognition_result = self.gesture_recognizer.recognize(mp_img)
-                
-                # Extract landmarks
-                if recognition_result.hand_landmarks:
-                    for hand_landmarks in recognition_result.hand_landmarks:
+                if results.multi_hand_landmarks:
+                    for hand_landmarks in results.multi_hand_landmarks:
                         # Draw landmarks on frame
                         self.mp_drawing.draw_landmarks(
                             frame,
                             hand_landmarks,
                             self.mp_hands.HAND_CONNECTIONS,
-                            self.mp_drawing_styles.get_default_hand_landmarks_style(),
-                            self.mp_drawing_styles.get_default_hand_connections_style()
+                            self.mp_drawing.DrawingSpec(color=(0, 255, 0), thickness=2, circle_radius=3),
+                            self.mp_drawing.DrawingSpec(color=(0, 0, 255), thickness=2)
                         )
                         
                         # Convert landmarks to dictionary
                         landmarks_dict = self._landmarks_to_dict(hand_landmarks)
                         landmarks_list.append(landmarks_dict)
-                
-                # Extract gestures
-                if recognition_result.gestures and len(recognition_result.gestures) > 0:
-                    # Get the top gesture and its confidence
-                    top_gesture = recognition_result.gestures[0][0]
-                    gesture_name = top_gesture.category_name
-                    confidence = top_gesture.score
-                    
-                    # Map to ASL letter if available
-                    asl_letter = self.gesture_to_asl_map.get(gesture_name)
-                    
-                    # Get threshold for this gesture
-                    threshold = self.base_confidence_threshold
-                    
-                    if asl_letter and confidence > threshold:
-                        # Apply state machine logic
-                        if self.current_state == "IDLE":
-                            # New gesture detected
-                            self.current_state = "DETECTING"
-                            self.state_start_time = current_time
-                            self.last_gesture = asl_letter
-                            self.gesture_stability_count = 1
-                            
-                        elif self.current_state == "DETECTING":
-                            if asl_letter == self.last_gesture:
-                                # Same gesture detected
-                                self.gesture_stability_count += 1
-                                
-                                # Check if gesture has been stable for long enough
-                                if (self.gesture_stability_count >= self.required_stability and 
-                                    current_time - self.state_start_time >= self.min_gesture_duration):
-                                    self.current_state = "CONFIRMED"
-                                    self.gesture_history.append(asl_letter)
-                                    gestures.append(asl_letter)
-                                    
-                                    # Add visual feedback for detected gesture
-                                    cv2.putText(
-                                        frame,
-                                        f"Detected: {asl_letter} ({confidence:.2f})",
-                                        (10, frame.shape[0] - 30),
-                                        cv2.FONT_HERSHEY_SIMPLEX,
-                                        0.7,
-                                        (0, 255, 0),
-                                        2
-                                    )
-                            else:
-                                # Different gesture detected
-                                # Check if the new gesture is in the recent history
-                                recent_gestures = list(self.gesture_history)
-                                if asl_letter in recent_gestures and recent_gestures.count(asl_letter) >= 2:
-                                    # If this gesture has appeared recently, give it more weight
-                                    self.gesture_stability_count = max(1, self.required_stability // 2)
-                                else:
-                                    self.gesture_stability_count = 1
-                                
-                                self.last_gesture = asl_letter
-                                self.state_start_time = current_time
-                                
-                        elif self.current_state == "CONFIRMED":
-                            if asl_letter != self.last_gesture:
-                                # Transition to a new gesture
-                                self.current_state = "TRANSITIONING"
+                        
+                        # Recognize the ASL letter directly from landmarks
+                        asl_letter, confidence = self.asl_recognizer.recognize(landmarks_dict)
+                        
+                        # Get threshold for this gesture
+                        threshold = self.base_confidence_threshold
+                        
+                        if asl_letter and confidence > threshold:
+                            # Apply state machine logic
+                            if self.current_state == "IDLE":
+                                # New gesture detected
+                                self.current_state = "DETECTING"
                                 self.state_start_time = current_time
                                 self.last_gesture = asl_letter
                                 self.gesture_stability_count = 1
-                            
-                        elif self.current_state == "TRANSITIONING":
-                            # Wait for cooldown before accepting a new gesture
-                            if current_time - self.state_start_time >= self.transition_cooldown:
-                                self.current_state = "DETECTING"
-                                self.state_start_time = current_time
                                 
+                            elif self.current_state == "DETECTING":
                                 if asl_letter == self.last_gesture:
+                                    # Same gesture detected
                                     self.gesture_stability_count += 1
+                                    
+                                    # Check if gesture has been stable for long enough
+                                    if (self.gesture_stability_count >= self.required_stability and 
+                                        current_time - self.state_start_time >= self.min_gesture_duration):
+                                        self.current_state = "CONFIRMED"
+                                        self.gesture_history.append(asl_letter)
+                                        gestures.append(asl_letter)
+                                        
+                                        # Add visual feedback for detected gesture
+                                        cv2.putText(
+                                            frame,
+                                            f"Detected: {asl_letter} ({confidence:.2f})",
+                                            (10, frame.shape[0] - 30),
+                                            cv2.FONT_HERSHEY_SIMPLEX,
+                                            0.7,
+                                            (0, 255, 0),
+                                            2
+                                        )
                                 else:
-                                    self.gesture_stability_count = 1
+                                    # Different gesture detected
+                                    # Check if the new gesture is in the recent history
+                                    recent_gestures = list(self.gesture_history)
+                                    if asl_letter in recent_gestures and recent_gestures.count(asl_letter) >= 2:
+                                        # If this gesture has appeared recently, give it more weight
+                                        self.gesture_stability_count = max(1, self.required_stability // 2)
+                                    else:
+                                        self.gesture_stability_count = 1
+                                    
                                     self.last_gesture = asl_letter
-                    else:
-                        # No valid gesture detected
-                        if self.current_state != "IDLE" and current_time - self.last_detection_time > self.min_gesture_duration * 2:
-                            # Reset state if no gesture detected for a while
-                            self.current_state = "IDLE"
-                            self.gesture_stability_count = 0
-                            self.last_gesture = None
+                                    self.state_start_time = current_time
+                                    
+                            elif self.current_state == "CONFIRMED":
+                                if asl_letter != self.last_gesture:
+                                    # Transition to a new gesture
+                                    self.current_state = "TRANSITIONING"
+                                    self.state_start_time = current_time
+                                    self.last_gesture = asl_letter
+                                    self.gesture_stability_count = 1
+                                
+                            elif self.current_state == "TRANSITIONING":
+                                # Wait for cooldown before accepting a new gesture
+                                if current_time - self.state_start_time >= self.transition_cooldown:
+                                    self.current_state = "DETECTING"
+                                    self.state_start_time = current_time
+                                    
+                                    if asl_letter == self.last_gesture:
+                                        self.gesture_stability_count += 1
+                                    else:
+                                        self.gesture_stability_count = 1
+                                        self.last_gesture = asl_letter
+                        else:
+                            # No valid gesture detected
+                            if self.current_state != "IDLE" and current_time - self.last_detection_time > self.min_gesture_duration * 2:
+                                # Reset state if no gesture detected for a while
+                                self.current_state = "IDLE"
+                                self.gesture_stability_count = 0
+                                self.last_gesture = None
                 
                 # Update last detection time
                 self.last_detection_time = current_time
                 
             except Exception as e:
-                print(f"Error using GestureRecognizer: {e}")
+                print(f"Error using ASL Recognizer: {e}")
                 print("Falling back to basic hand tracking")
                 self.use_gesture_recognizer = False
         
@@ -510,6 +503,7 @@ class HandTracker:
     def _normalize_landmarks(self, landmarks: Dict) -> Dict:
         """
         Normalize hand landmarks to make detection more robust to different hand sizes and positions.
+        Takes advantage of 3D information when available.
         
         Args:
             landmarks: Dictionary of hand landmarks
@@ -523,6 +517,12 @@ class HandTracker:
         min_y = min(landmark['y'] for landmark in landmarks.values())
         max_y = max(landmark['y'] for landmark in landmarks.values())
         
+        # Also normalize Z if we're using 3D landmarks
+        if self.use_3d_landmarks:
+            min_z = min(landmark['z'] for landmark in landmarks.values())
+            max_z = max(landmark['z'] for landmark in landmarks.values())
+            depth = max(0.001, max_z - min_z)  # Avoid division by zero
+        
         # Calculate the width and height of the bounding box
         width = max(0.001, max_x - min_x)  # Avoid division by zero
         height = max(0.001, max_y - min_y)
@@ -530,10 +530,12 @@ class HandTracker:
         # Normalize landmarks to [0, 1] range within the bounding box
         normalized_landmarks = {}
         for i, landmark in landmarks.items():
+            normalized_z = (landmark['z'] - min_z) / depth if self.use_3d_landmarks else landmark['z']
+            
             normalized_landmarks[i] = {
                 'x': (landmark['x'] - min_x) / width,
                 'y': (landmark['y'] - min_y) / height,
-                'z': landmark['z']  # Keep z as is for now
+                'z': normalized_z  # Normalize Z if using 3D landmarks
             }
         
         return normalized_landmarks
