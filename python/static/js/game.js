@@ -8,238 +8,51 @@ let canvasCtx;
 let statusElement;
 let confidenceElement;
 let scoreElement;
-let healthElement;
+let timerElement;
 let levelElement;
 let currentWordElement;
 let detectedLettersElement;
+let livesElement;
 let startButton;
 let restartButton;
 let gameOverModal;
 let finalScoreElement;
+let wordsSpelledElement;
 let playAgainButton;
 
 // Game state
 let gameState = {
     isRunning: false,
     score: 0,
-    health: 100,
+    lives: 3,
     level: 1,
-    monsters: [],
+    currentWord: '',
+    currentLetterIndex: 0,
     detectedLetters: '',
-    currentMonsterIndex: 0,
+    wordsSpelled: [],
     lastDetectedLetter: '',
     lastDetectionTime: 0
 };
 
 // Constants
-const MONSTER_SPEED_BASE = 1;
-const MONSTER_SPEED_INCREMENT = 0.2;
-const PLAYER_POSITION_X = 50;
-const PLAYER_SIZE = 60;
-const MONSTER_SIZE = 80;
-const HEALTH_DECREASE_RATE = 10;
 const LETTER_DETECTION_COOLDOWN = 1000; // ms
-const SUPPORTED_LETTERS = ['A', 'B', 'K', 'W'];
+const SUPPORTED_LETTERS = ['A', 'B', 'I', 'K', 'W'];
+const POINTS_PER_LETTER = 10;
+const WORD_BONUS_MULTIPLIER = 1.5;
+const LEVEL_WORD_COUNT = 5; // Words to spell before leveling up
 
-// Word list (using only A, B, K, W)
+// Word list (using A, B, I, K, W)
 const WORD_LIST = [
-    'AB', 'AW', 'BA', 'KA', 'WA',
-    'BAK', 'WAK', 'BAW', 'KAB', 'WAB',
-    'BAKA', 'WAKA', 'ABBA', 'KAWA', 'BAWK',
-    'AWKWARD', 'KAWABATA', 'WAKAWAKA'
+    // Short words (2-3 letters)
+    'AB', 'AW', 'BA', 'KA', 'WA', 'AI', 'BI', 'KI', 'WI', 'IA',
+    'BAK', 'WAK', 'BAW', 'KAB', 'WAB', 'AIK', 'BIK', 'KIA', 'WIB', 'IKA',
+    
+    // Medium words (4 letters)
+    'BAKA', 'WAKA', 'ABBA', 'KAWA', 'BAWK', 'BAKI', 'WIKI', 'KIWI', 'BIKA', 'AIKI',
+    
+    // Long words (5+ letters)
+    'AIKAWA', 'KABIKI', 'WAKIBA', 'AWKWARD', 'KAWABATA', 'WAKAWAKA'
 ];
-
-// Monster class
-class Monster {
-    constructor(word, level) {
-        this.word = word;
-        this.x = gameCanvas.width;
-        this.y = 100 + Math.random() * (gameCanvas.height - 200);
-        this.speed = MONSTER_SPEED_BASE + (level - 1) * MONSTER_SPEED_INCREMENT;
-        this.color = this.getRandomColor();
-        this.currentLetterIndex = 0;
-        this.isDefeated = false;
-        this.isAttacking = false;
-        this.attackTimer = 0;
-    }
-
-    update() {
-        if (!this.isDefeated) {
-            this.x -= this.speed;
-
-            // Check if monster reached the player
-            if (this.x <= PLAYER_POSITION_X + PLAYER_SIZE / 2 && !this.isAttacking) {
-                this.isAttacking = true;
-                this.attackTimer = 0;
-            }
-
-            // Handle attack
-            if (this.isAttacking) {
-                this.attackTimer++;
-                if (this.attackTimer >= 60) { // Attack every 60 frames (about 1 second)
-                    gameState.health -= HEALTH_DECREASE_RATE;
-                    healthElement.style.width = gameState.health + '%';
-                    
-                    // Update health bar color
-                    if (gameState.health <= 30) {
-                        healthElement.style.backgroundColor = '#F44336'; // Red
-                    } else if (gameState.health <= 60) {
-                        healthElement.style.backgroundColor = '#FFC107'; // Amber
-                    }
-                    
-                    this.attackTimer = 0;
-                    
-                    // Check if game over
-                    if (gameState.health <= 0) {
-                        endGame();
-                    }
-                }
-            }
-        } else {
-            // Move defeated monster away
-            this.y -= 2;
-            this.x += 1;
-            
-            // Remove monster if it's off screen
-            if (this.y < -MONSTER_SIZE || this.x > gameCanvas.width + MONSTER_SIZE) {
-                const index = gameState.monsters.indexOf(this);
-                if (index !== -1) {
-                    gameState.monsters.splice(index, 1);
-                }
-            }
-        }
-    }
-
-    draw() {
-        gameCtx.save();
-        
-        // Draw monster body
-        gameCtx.fillStyle = this.color;
-        gameCtx.beginPath();
-        gameCtx.arc(this.x, this.y, MONSTER_SIZE / 2, 0, Math.PI * 2);
-        gameCtx.fill();
-        
-        // Draw monster eyes
-        gameCtx.fillStyle = 'white';
-        gameCtx.beginPath();
-        gameCtx.arc(this.x - 15, this.y - 10, 10, 0, Math.PI * 2);
-        gameCtx.arc(this.x + 15, this.y - 10, 10, 0, Math.PI * 2);
-        gameCtx.fill();
-        
-        // Draw monster pupils
-        gameCtx.fillStyle = 'black';
-        gameCtx.beginPath();
-        gameCtx.arc(this.x - 15, this.y - 10, 5, 0, Math.PI * 2);
-        gameCtx.arc(this.x + 15, this.y - 10, 5, 0, Math.PI * 2);
-        gameCtx.fill();
-        
-        // Draw monster mouth
-        if (this.isDefeated) {
-            // X eyes for defeated monster
-            gameCtx.strokeStyle = 'black';
-            gameCtx.lineWidth = 3;
-            gameCtx.beginPath();
-            gameCtx.moveTo(this.x - 20, this.y - 15);
-            gameCtx.lineTo(this.x - 10, this.y - 5);
-            gameCtx.moveTo(this.x - 10, this.y - 15);
-            gameCtx.lineTo(this.x - 20, this.y - 5);
-            gameCtx.moveTo(this.x + 10, this.y - 15);
-            gameCtx.lineTo(this.x + 20, this.y - 5);
-            gameCtx.moveTo(this.x + 20, this.y - 15);
-            gameCtx.lineTo(this.x + 10, this.y - 5);
-            gameCtx.stroke();
-            
-            // Sad mouth
-            gameCtx.beginPath();
-            gameCtx.arc(this.x, this.y + 10, 15, Math.PI, Math.PI * 2, true);
-            gameCtx.stroke();
-        } else if (this.isAttacking) {
-            // Angry attacking mouth
-            gameCtx.fillStyle = 'black';
-            gameCtx.beginPath();
-            gameCtx.arc(this.x, this.y + 10, 20, 0, Math.PI);
-            gameCtx.fill();
-            
-            // Teeth
-            gameCtx.fillStyle = 'white';
-            gameCtx.beginPath();
-            gameCtx.moveTo(this.x - 15, this.y + 10);
-            gameCtx.lineTo(this.x - 10, this.y + 20);
-            gameCtx.lineTo(this.x - 5, this.y + 10);
-            gameCtx.fill();
-            
-            gameCtx.beginPath();
-            gameCtx.moveTo(this.x + 5, this.y + 10);
-            gameCtx.lineTo(this.x + 10, this.y + 20);
-            gameCtx.lineTo(this.x + 15, this.y + 10);
-            gameCtx.fill();
-        } else {
-            // Normal mouth
-            gameCtx.fillStyle = 'black';
-            gameCtx.beginPath();
-            gameCtx.arc(this.x, this.y + 10, 15, 0, Math.PI);
-            gameCtx.fill();
-        }
-        
-        // Draw word above monster
-        gameCtx.fillStyle = 'black';
-        gameCtx.font = '20px Arial';
-        gameCtx.textAlign = 'center';
-        
-        // Draw each letter with appropriate color
-        for (let i = 0; i < this.word.length; i++) {
-            let letterColor;
-            if (i < this.currentLetterIndex) {
-                letterColor = '#4CAF50'; // Green for correct letters
-            } else if (i === this.currentLetterIndex) {
-                letterColor = '#2196F3'; // Blue for current letter
-            } else {
-                letterColor = '#333'; // Dark gray for pending letters
-            }
-            
-            gameCtx.fillStyle = letterColor;
-            gameCtx.fillText(this.word[i], this.x - ((this.word.length - 1) * 10) + (i * 20), this.y - 40);
-        }
-        
-        gameCtx.restore();
-    }
-
-    checkLetter(letter) {
-        if (this.currentLetterIndex < this.word.length && 
-            letter === this.word[this.currentLetterIndex]) {
-            this.currentLetterIndex++;
-            
-            // Check if monster is defeated
-            if (this.currentLetterIndex >= this.word.length) {
-                this.isDefeated = true;
-                this.isAttacking = false;
-                
-                // Add score based on word length and level
-                const scoreGain = this.word.length * 10 * gameState.level;
-                gameState.score += scoreGain;
-                scoreElement.textContent = gameState.score;
-                
-                // Show score popup
-                showScorePopup(this.x, this.y, scoreGain);
-                
-                return true;
-            }
-            return true;
-        }
-        return false;
-    }
-
-    getRandomColor() {
-        const colors = [
-            '#FF6B6B', // Red
-            '#4D96FF', // Blue
-            '#6BCB77', // Green
-            '#FFD93D', // Yellow
-            '#9B72AA'  // Purple
-        ];
-        return colors[Math.floor(Math.random() * colors.length)];
-    }
-}
 
 // Wait for DOM to load before accessing elements
 document.addEventListener('DOMContentLoaded', function() {
@@ -250,14 +63,16 @@ document.addEventListener('DOMContentLoaded', function() {
     statusElement = document.getElementById('statusElement');
     confidenceElement = document.getElementById('confidenceElement');
     scoreElement = document.getElementById('scoreElement');
-    healthElement = document.getElementById('healthElement');
+    timerElement = document.getElementById('timerElement');
     levelElement = document.getElementById('levelElement');
     currentWordElement = document.getElementById('currentWordElement');
     detectedLettersElement = document.getElementById('detectedLettersElement');
+    livesElement = document.getElementById('livesElement');
     startButton = document.getElementById('startButton');
     restartButton = document.getElementById('restartButton');
     gameOverModal = document.getElementById('gameOverModal');
     finalScoreElement = document.getElementById('finalScoreElement');
+    wordsSpelledElement = document.getElementById('wordsSpelledElement');
     playAgainButton = document.getElementById('playAgainButton');
     
     // Set up game canvas
@@ -387,51 +202,273 @@ function processDetectedLetter(letter) {
         gameState.lastDetectionTime = now;
         
         // Add letter to detected letters
-        gameState.detectedLetters += letter;
-        detectedLettersElement.textContent = gameState.detectedLetters;
+        gameState.detectedLetters = letter;
+        detectedLettersElement.textContent = letter;
         
-        // Check if letter matches current monster's next letter
-        if (gameState.monsters.length > 0) {
-            const currentMonster = gameState.monsters[gameState.currentMonsterIndex];
-            if (currentMonster.checkLetter(letter)) {
-                // Update current word display
-                updateCurrentWordDisplay(currentMonster);
-                
-                // Check if monster is defeated
-                if (currentMonster.isDefeated) {
-                    // Move to next monster if available
-                    if (gameState.currentMonsterIndex < gameState.monsters.length - 1) {
-                        gameState.currentMonsterIndex++;
-                        updateCurrentWordDisplay(gameState.monsters[gameState.currentMonsterIndex]);
-                    }
-                }
-            }
+        // Check if letter matches the expected letter in the current word
+        checkLetter(letter);
+    }
+}
+
+// Check if the detected letter matches the expected letter
+function checkLetter(letter) {
+    if (gameState.currentWord.length === 0) return;
+    
+    const expectedLetter = gameState.currentWord[gameState.currentLetterIndex];
+    
+    if (letter === expectedLetter) {
+        // Correct letter
+        gameState.currentLetterIndex++;
+        
+        // Update display
+        updateWordDisplay();
+        
+        // Play success sound
+        playSound('letter');
+        
+        // Check if word is complete
+        if (gameState.currentLetterIndex >= gameState.currentWord.length) {
+            // Word completed successfully
+            wordCompleted();
+        }
+    } else {
+        // Incorrect letter
+        // Lose a life
+        gameState.lives--;
+        updateLivesDisplay();
+        
+        // Play error sound
+        playSound('error');
+        
+        // Show error message
+        showErrorMessage();
+        
+        // Check if game over
+        if (gameState.lives <= 0) {
+            endGame();
+        } else {
+            // Reset current word and get a new one
+            setTimeout(() => {
+                getNextWord();
+            }, 1500);
         }
     }
 }
 
-// Update current word display
-function updateCurrentWordDisplay(monster) {
-    if (!monster) {
-        currentWordElement.innerHTML = '';
-        return;
-    }
-    
+// Update the word display to show progress
+function updateWordDisplay() {
     let html = '';
-    for (let i = 0; i < monster.word.length; i++) {
+    
+    for (let i = 0; i < gameState.currentWord.length; i++) {
         let letterClass = '';
-        if (i < monster.currentLetterIndex) {
+        if (i < gameState.currentLetterIndex) {
             letterClass = 'letter-correct';
-        } else if (i === monster.currentLetterIndex) {
+        } else if (i === gameState.currentLetterIndex) {
             letterClass = 'letter-current';
         } else {
             letterClass = 'letter-pending';
         }
         
-        html += `<span class="${letterClass}">${monster.word[i]}</span>`;
+        html += `<span class="${letterClass}">${gameState.currentWord[i]}</span>`;
     }
     
     currentWordElement.innerHTML = html;
+}
+
+// Handle successful word completion
+function wordCompleted() {
+    // Calculate score
+    const baseScore = gameState.currentWord.length * POINTS_PER_LETTER;
+    const bonus = gameState.currentWord.length >= 4 ? WORD_BONUS_MULTIPLIER : 1;
+    const scoreGain = Math.floor(baseScore * bonus);
+    
+    // Add score
+    gameState.score += scoreGain;
+    scoreElement.textContent = gameState.score;
+    
+    // Add to words spelled
+    gameState.wordsSpelled.push(gameState.currentWord);
+    
+    // Show success message
+    showSuccessMessage(scoreGain);
+    
+    // Play success sound
+    playSound('word');
+    
+    // Check level progression
+    if (gameState.wordsSpelled.length % LEVEL_WORD_COUNT === 0) {
+        levelUp();
+    }
+    
+    // Get next word after a delay
+    setTimeout(() => {
+        getNextWord();
+    }, 1500);
+}
+
+// Get the next word to spell
+function getNextWord() {
+    // Filter words by level difficulty
+    let wordPool;
+    
+    if (gameState.level === 1) {
+        // Level 1: Short words (2-3 letters)
+        wordPool = WORD_LIST.filter(word => word.length <= 3);
+    } else if (gameState.level === 2) {
+        // Level 2: Medium words (3-4 letters)
+        wordPool = WORD_LIST.filter(word => word.length >= 3 && word.length <= 4);
+    } else {
+        // Level 3+: Any word, with preference for longer words
+        wordPool = WORD_LIST;
+        
+        // Add some longer words multiple times to increase their probability
+        const longWords = WORD_LIST.filter(word => word.length > 4);
+        wordPool = wordPool.concat(longWords);
+    }
+    
+    // Get a random word
+    const randomIndex = Math.floor(Math.random() * wordPool.length);
+    gameState.currentWord = wordPool[randomIndex];
+    gameState.currentLetterIndex = 0;
+    
+    // Update display
+    updateWordDisplay();
+}
+
+// Level up
+function levelUp() {
+    gameState.level++;
+    levelElement.textContent = gameState.level;
+    
+    // Show level up message
+    showLevelUpMessage();
+    
+    // Play level up sound
+    playSound('levelUp');
+}
+
+// Update lives display
+function updateLivesDisplay() {
+    if (livesElement) {
+        let livesHtml = '';
+        for (let i = 0; i < gameState.lives; i++) {
+            livesHtml += '❤️ ';
+        }
+        for (let i = gameState.lives; i < 3; i++) {
+            livesHtml += '❌ ';
+        }
+        livesElement.innerHTML = livesHtml;
+    }
+}
+
+// Show success message
+function showSuccessMessage(score) {
+    const message = document.createElement('div');
+    message.textContent = `Correct! +${score}`;
+    message.className = 'game-message success';
+    
+    document.querySelector('.game-area').appendChild(message);
+    
+    // Animate and remove after a delay
+    setTimeout(() => {
+        message.classList.add('fade-out');
+        setTimeout(() => {
+            message.remove();
+        }, 500);
+    }, 1000);
+}
+
+// Show error message
+function showErrorMessage() {
+    const message = document.createElement('div');
+    message.textContent = 'Incorrect! -1 Life';
+    message.className = 'game-message error';
+    
+    document.querySelector('.game-area').appendChild(message);
+    
+    // Animate and remove after a delay
+    setTimeout(() => {
+        message.classList.add('fade-out');
+        setTimeout(() => {
+            message.remove();
+        }, 500);
+    }, 1000);
+}
+
+// Show level up message
+function showLevelUpMessage() {
+    const message = document.createElement('div');
+    message.textContent = `LEVEL UP! ${gameState.level}`;
+    message.className = 'game-message level-up';
+    
+    document.querySelector('.game-area').appendChild(message);
+    
+    // Animate and remove after a delay
+    setTimeout(() => {
+        message.classList.add('fade-out');
+        setTimeout(() => {
+            message.remove();
+        }, 500);
+    }, 2000);
+}
+
+// Play sound effect
+function playSound(type) {
+    // Simple sound effect using Web Audio API
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        switch (type) {
+            case 'letter':
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+                gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                oscillator.start();
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                oscillator.stop(audioContext.currentTime + 0.2);
+                break;
+                
+            case 'word':
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime);
+                gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                oscillator.start();
+                oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1);
+                oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                oscillator.stop(audioContext.currentTime + 0.3);
+                break;
+                
+            case 'error':
+                oscillator.type = 'sawtooth';
+                oscillator.frequency.setValueAtTime(110, audioContext.currentTime);
+                gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                oscillator.start();
+                oscillator.frequency.setValueAtTime(100, audioContext.currentTime + 0.1);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                oscillator.stop(audioContext.currentTime + 0.2);
+                break;
+                
+            case 'levelUp':
+                oscillator.type = 'square';
+                oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+                gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                oscillator.start();
+                oscillator.frequency.setValueAtTime(554.37, audioContext.currentTime + 0.1);
+                oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.2);
+                oscillator.frequency.setValueAtTime(880, audioContext.currentTime + 0.3);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+                oscillator.stop(audioContext.currentTime + 0.4);
+                break;
+        }
+    } catch (e) {
+        console.error('Error playing sound:', e);
+    }
 }
 
 // Start the game
@@ -443,40 +480,47 @@ function startGame() {
     startButton.style.display = 'none';
     restartButton.style.display = 'inline-block';
     
+    // Get first word
+    getNextWord();
+    
     // Start game loop
     requestAnimationFrame(gameLoop);
-    
-    // Start spawning monsters
-    spawnMonster();
 }
 
 // Reset game state
 function resetGame() {
     gameState.isRunning = false;
     gameState.score = 0;
-    gameState.health = 100;
+    gameState.lives = 3;
     gameState.level = 1;
-    gameState.monsters = [];
+    gameState.currentWord = '';
+    gameState.currentLetterIndex = 0;
     gameState.detectedLetters = '';
-    gameState.currentMonsterIndex = 0;
+    gameState.wordsSpelled = [];
     gameState.lastDetectedLetter = '';
     gameState.lastDetectionTime = 0;
     
     // Update UI
     scoreElement.textContent = gameState.score;
-    healthElement.style.width = gameState.health + '%';
-    healthElement.style.backgroundColor = '#4CAF50';
     levelElement.textContent = gameState.level;
     currentWordElement.innerHTML = '';
     detectedLettersElement.textContent = '';
+    updateLivesDisplay();
 }
 
 // End the game
 function endGame() {
     gameState.isRunning = false;
     
-    // Show game over modal
+    // Update game over modal with statistics
     finalScoreElement.textContent = gameState.score;
+    
+    // Update words spelled count
+    if (wordsSpelledElement) {
+        wordsSpelledElement.textContent = gameState.wordsSpelled.length;
+    }
+    
+    // Show game over modal
     gameOverModal.style.display = 'flex';
 }
 
@@ -490,14 +534,8 @@ function gameLoop() {
     // Draw background
     drawBackground();
     
-    // Draw player
-    drawPlayer();
-    
-    // Update and draw monsters
-    updateMonsters();
-    
-    // Check level progression
-    checkLevelProgression();
+    // Draw game board
+    drawGameBoard();
     
     // Continue game loop
     requestAnimationFrame(gameLoop);
@@ -505,245 +543,183 @@ function gameLoop() {
 
 // Draw background
 function drawBackground() {
-    // Draw sky
-    const gradient = gameCtx.createLinearGradient(0, 0, 0, gameCanvas.height);
-    gradient.addColorStop(0, '#87CEEB');
-    gradient.addColorStop(1, '#E0F7FA');
-    gameCtx.fillStyle = gradient;
+    // Chess.com inspired background
+    gameCtx.fillStyle = '#E8EDF9';  // Light blue-gray background
     gameCtx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
     
-    // Draw ground
-    gameCtx.fillStyle = '#8BC34A';
-    gameCtx.fillRect(0, gameCanvas.height - 50, gameCanvas.width, 50);
+    // Add subtle pattern
+    gameCtx.strokeStyle = '#D6DBEA';
+    gameCtx.lineWidth = 1;
+    
+    // Draw grid pattern
+    const gridSize = 20;
+    for (let x = 0; x < gameCanvas.width; x += gridSize) {
+        gameCtx.beginPath();
+        gameCtx.moveTo(x, 0);
+        gameCtx.lineTo(x, gameCanvas.height);
+        gameCtx.stroke();
+    }
+    
+    for (let y = 0; y < gameCanvas.height; y += gridSize) {
+        gameCtx.beginPath();
+        gameCtx.moveTo(0, y);
+        gameCtx.lineTo(gameCanvas.width, y);
+        gameCtx.stroke();
+    }
 }
 
-// Draw player
-function drawPlayer() {
-    const x = PLAYER_POSITION_X;
-    const y = gameCanvas.height - 80;
+// Draw game board
+function drawGameBoard() {
+    // Draw board background
+    gameCtx.fillStyle = '#F5F5F5';
+    gameCtx.strokeStyle = '#333';
+    gameCtx.lineWidth = 2;
     
-    gameCtx.save();
+    // Draw rounded rectangle for board
+    const margin = 20;
+    const radius = 10;
+    const boardX = margin;
+    const boardY = margin;
+    const boardWidth = gameCanvas.width - (margin * 2);
+    const boardHeight = gameCanvas.height - (margin * 2);
     
-    // Draw player body
-    gameCtx.fillStyle = '#2196F3';
     gameCtx.beginPath();
-    gameCtx.arc(x, y, PLAYER_SIZE / 2, 0, Math.PI * 2);
+    gameCtx.moveTo(boardX + radius, boardY);
+    gameCtx.lineTo(boardX + boardWidth - radius, boardY);
+    gameCtx.quadraticCurveTo(boardX + boardWidth, boardY, boardX + boardWidth, boardY + radius);
+    gameCtx.lineTo(boardX + boardWidth, boardY + boardHeight - radius);
+    gameCtx.quadraticCurveTo(boardX + boardWidth, boardY + boardHeight, boardX + boardWidth - radius, boardY + boardHeight);
+    gameCtx.lineTo(boardX + radius, boardY + boardHeight);
+    gameCtx.quadraticCurveTo(boardX, boardY + boardHeight, boardX, boardY + boardHeight - radius);
+    gameCtx.lineTo(boardX, boardY + radius);
+    gameCtx.quadraticCurveTo(boardX, boardY, boardX + radius, boardY);
+    gameCtx.closePath();
+    
     gameCtx.fill();
-    
-    // Draw player eyes
-    gameCtx.fillStyle = 'white';
-    gameCtx.beginPath();
-    gameCtx.arc(x - 10, y - 10, 8, 0, Math.PI * 2);
-    gameCtx.arc(x + 10, y - 10, 8, 0, Math.PI * 2);
-    gameCtx.fill();
-    
-    // Draw player pupils
-    gameCtx.fillStyle = 'black';
-    gameCtx.beginPath();
-    gameCtx.arc(x - 8, y - 10, 4, 0, Math.PI * 2);
-    gameCtx.arc(x + 12, y - 10, 4, 0, Math.PI * 2);
-    gameCtx.fill();
-    
-    // Draw player mouth
-    gameCtx.beginPath();
-    gameCtx.arc(x, y + 5, 15, 0, Math.PI);
     gameCtx.stroke();
     
-    gameCtx.restore();
-}
-
-// Update and draw monsters
-function updateMonsters() {
-    for (let i = 0; i < gameState.monsters.length; i++) {
-        gameState.monsters[i].update();
-        gameState.monsters[i].draw();
-    }
-}
-
-// Spawn a new monster
-function spawnMonster() {
-    if (!gameState.isRunning) return;
+    // Draw grid lines
+    gameCtx.strokeStyle = '#DDD';
+    gameCtx.lineWidth = 1;
     
-    // Get a random word based on level
-    const word = getRandomWord(gameState.level);
-    
-    // Create a new monster
-    const monster = new Monster(word, gameState.level);
-    gameState.monsters.push(monster);
-    
-    // If this is the first monster, set it as current
-    if (gameState.monsters.length === 1) {
-        gameState.currentMonsterIndex = 0;
-        updateCurrentWordDisplay(monster);
+    // Horizontal lines
+    for (let y = boardY + 50; y < boardY + boardHeight; y += 50) {
+        gameCtx.beginPath();
+        gameCtx.moveTo(boardX, y);
+        gameCtx.lineTo(boardX + boardWidth, y);
+        gameCtx.stroke();
     }
     
-    // Schedule next monster spawn
-    const spawnDelay = Math.max(5000 - (gameState.level * 500), 2000);
-    setTimeout(spawnMonster, spawnDelay);
-}
-
-// Get a random word based on level
-function getRandomWord(level) {
-    let wordPool;
-    
-    if (level <= 2) {
-        // Level 1-2: Short words (2-3 letters)
-        wordPool = WORD_LIST.filter(word => word.length <= 3);
-    } else if (level <= 5) {
-        // Level 3-5: Medium words (3-4 letters)
-        wordPool = WORD_LIST.filter(word => word.length >= 3 && word.length <= 4);
-    } else {
-        // Level 6+: Any word, with preference for longer words
-        wordPool = WORD_LIST;
-        
-        // Add some longer words multiple times to increase their probability
-        const longWords = WORD_LIST.filter(word => word.length > 4);
-        wordPool = wordPool.concat(longWords);
+    // Vertical lines
+    for (let x = boardX + 50; x < boardX + boardWidth; x += 50) {
+        gameCtx.beginPath();
+        gameCtx.moveTo(x, boardY);
+        gameCtx.lineTo(x, boardY + boardHeight);
+        gameCtx.stroke();
     }
     
-    return wordPool[Math.floor(Math.random() * wordPool.length)];
-}
-
-// Check level progression
-function checkLevelProgression() {
-    // Level up every 200 points
-    const newLevel = Math.floor(gameState.score / 200) + 1;
-    
-    if (newLevel > gameState.level) {
-        gameState.level = newLevel;
-        levelElement.textContent = gameState.level;
+    // Draw current word if game is running
+    if (gameState.isRunning && gameState.currentWord) {
+        // Draw word title
+        gameCtx.fillStyle = '#333';
+        gameCtx.font = 'bold 24px "Roboto", sans-serif';
+        gameCtx.textAlign = 'center';
+        gameCtx.textBaseline = 'middle';
+        gameCtx.fillText('Spell this word:', gameCanvas.width / 2, boardY + 50);
         
-        // Show level up message
-        showLevelUpMessage();
-    }
-}
-
-// Show level up message
-function showLevelUpMessage() {
-    const message = document.createElement('div');
-    message.textContent = 'LEVEL UP!';
-    message.style.position = 'absolute';
-    message.style.top = '50%';
-    message.style.left = '50%';
-    message.style.transform = 'translate(-50%, -50%)';
-    message.style.fontSize = '48px';
-    message.style.fontWeight = 'bold';
-    message.style.color = '#FFD700';
-    message.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.5)';
-    message.style.zIndex = '100';
-    
-    document.querySelector('.game-area').appendChild(message);
-    
-    // Animate the message
-    let opacity = 1;
-    let size = 48;
-    
-    const animate = () => {
-        opacity -= 0.02;
-        size += 1;
+        // Draw the word
+        gameCtx.font = 'bold 48px "Roboto", sans-serif';
+        gameCtx.fillText(gameState.currentWord, gameCanvas.width / 2, boardY + 120);
         
-        message.style.opacity = opacity;
-        message.style.fontSize = size + 'px';
+        // Draw progress
+        gameCtx.font = '24px "Roboto", sans-serif';
+        gameCtx.fillText(`Progress: ${gameState.currentLetterIndex}/${gameState.currentWord.length}`, gameCanvas.width / 2, boardY + 180);
         
-        if (opacity > 0) {
-            requestAnimationFrame(animate);
-        } else {
-            message.remove();
+        // Draw detected letter
+        if (gameState.detectedLetters) {
+            gameCtx.fillStyle = '#4D8BBD';
+            gameCtx.font = 'bold 36px "Roboto", sans-serif';
+            gameCtx.fillText(`Detected: ${gameState.detectedLetters}`, gameCanvas.width / 2, boardY + 240);
         }
-    };
-    
-    requestAnimationFrame(animate);
-}
-
-// Show score popup
-function showScorePopup(x, y, score) {
-    const popup = document.createElement('div');
-    popup.textContent = '+' + score;
-    popup.style.position = 'absolute';
-    popup.style.top = (y + gameCanvas.offsetTop) + 'px';
-    popup.style.left = (x + gameCanvas.offsetLeft) + 'px';
-    popup.style.fontSize = '24px';
-    popup.style.fontWeight = 'bold';
-    popup.style.color = '#4CAF50';
-    popup.style.zIndex = '100';
-    
-    document.querySelector('.game-area').appendChild(popup);
-    
-    // Animate the popup
-    let opacity = 1;
-    let posY = y;
-    
-    const animate = () => {
-        opacity -= 0.02;
-        posY -= 2;
-        
-        popup.style.opacity = opacity;
-        popup.style.top = (posY + gameCanvas.offsetTop) + 'px';
-        
-        if (opacity > 0) {
-            requestAnimationFrame(animate);
-        } else {
-            popup.remove();
-        }
-    };
-    
-    requestAnimationFrame(animate);
+    }
 }
 
 // Draw start screen
 function drawStartScreen() {
     gameCtx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
     
-    // Draw background
+    // Draw chess.com inspired background
     drawBackground();
+    
+    // Draw title box
+    const titleBoxWidth = 600;
+    const titleBoxHeight = 300;
+    const titleBoxX = (gameCanvas.width - titleBoxWidth) / 2;
+    const titleBoxY = (gameCanvas.height - titleBoxHeight) / 2;
+    
+    // Draw box with shadow
+    gameCtx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+    gameCtx.shadowBlur = 10;
+    gameCtx.shadowOffsetX = 5;
+    gameCtx.shadowOffsetY = 5;
+    
+    gameCtx.fillStyle = 'white';
+    gameCtx.beginPath();
+    gameCtx.roundRect(titleBoxX, titleBoxY, titleBoxWidth, titleBoxHeight, 10);
+    gameCtx.fill();
+    
+    // Reset shadow
+    gameCtx.shadowColor = 'transparent';
+    gameCtx.shadowBlur = 0;
+    gameCtx.shadowOffsetX = 0;
+    gameCtx.shadowOffsetY = 0;
+    
+    // Draw border
+    gameCtx.strokeStyle = '#DDD';
+    gameCtx.lineWidth = 2;
+    gameCtx.stroke();
     
     // Draw title
     gameCtx.fillStyle = '#333';
-    gameCtx.font = 'bold 48px Arial';
+    gameCtx.font = 'bold 48px "Roboto", sans-serif';
     gameCtx.textAlign = 'center';
-    gameCtx.fillText('Sign Slayer', gameCanvas.width / 2, 100);
+    gameCtx.fillText('Sign Language Spelling', gameCanvas.width / 2, titleBoxY + 70);
     
     // Draw subtitle
-    gameCtx.font = '24px Arial';
-    gameCtx.fillText('Defeat monsters with ASL signs!', gameCanvas.width / 2, 150);
+    gameCtx.font = '24px "Roboto", sans-serif';
+    gameCtx.fillText('Spell words using ASL signs', gameCanvas.width / 2, titleBoxY + 120);
     
     // Draw instructions
-    gameCtx.font = '18px Arial';
-    gameCtx.fillText('Press the Start Game button to begin', gameCanvas.width / 2, 200);
-    gameCtx.fillText('Supported letters: A, B, K, W', gameCanvas.width / 2, 230);
+    gameCtx.font = '18px "Roboto", sans-serif';
+    gameCtx.fillText('Press the Start Game button to begin', gameCanvas.width / 2, titleBoxY + 170);
+    gameCtx.fillText('Supported letters: A, B, I, K, W', gameCanvas.width / 2, titleBoxY + 200);
     
-    // Draw player and monster example
-    drawPlayer();
+    // Draw example letters
+    const letterSize = 40;
+    const spacing = 10;
+    const startX = (gameCanvas.width - ((letterSize + spacing) * 5 - spacing)) / 2;
+    const startY = titleBoxY + 230;
     
-    // Example monster
-    gameCtx.fillStyle = '#FF6B6B';
-    gameCtx.beginPath();
-    gameCtx.arc(gameCanvas.width - 100, gameCanvas.height - 80, MONSTER_SIZE / 2, 0, Math.PI * 2);
-    gameCtx.fill();
-    
-    // Monster eyes
-    gameCtx.fillStyle = 'white';
-    gameCtx.beginPath();
-    gameCtx.arc(gameCanvas.width - 115, gameCanvas.height - 90, 10, 0, Math.PI * 2);
-    gameCtx.arc(gameCanvas.width - 85, gameCanvas.height - 90, 10, 0, Math.PI * 2);
-    gameCtx.fill();
-    
-    // Monster pupils
-    gameCtx.fillStyle = 'black';
-    gameCtx.beginPath();
-    gameCtx.arc(gameCanvas.width - 115, gameCanvas.height - 90, 5, 0, Math.PI * 2);
-    gameCtx.arc(gameCanvas.width - 85, gameCanvas.height - 90, 5, 0, Math.PI * 2);
-    gameCtx.fill();
-    
-    // Monster mouth
-    gameCtx.fillStyle = 'black';
-    gameCtx.beginPath();
-    gameCtx.arc(gameCanvas.width - 100, gameCanvas.height - 70, 15, 0, Math.PI);
-    gameCtx.fill();
-    
-    // Example word
-    gameCtx.fillStyle = 'black';
-    gameCtx.font = '20px Arial';
-    gameCtx.textAlign = 'center';
-    gameCtx.fillText('BAK', gameCanvas.width - 100, gameCanvas.height - 120);
+    for (let i = 0; i < SUPPORTED_LETTERS.length; i++) {
+        const letter = SUPPORTED_LETTERS[i];
+        const x = startX + i * (letterSize + spacing);
+        const y = startY;
+        
+        // Draw letter background
+        gameCtx.fillStyle = '#E8EDF9';
+        gameCtx.strokeStyle = '#333';
+        gameCtx.lineWidth = 1;
+        
+        gameCtx.beginPath();
+        gameCtx.roundRect(x, y, letterSize, letterSize, 5);
+        gameCtx.fill();
+        gameCtx.stroke();
+        
+        // Draw letter
+        gameCtx.fillStyle = '#333';
+        gameCtx.font = 'bold 20px "Roboto", sans-serif';
+        gameCtx.textAlign = 'center';
+        gameCtx.textBaseline = 'middle';
+        gameCtx.fillText(letter, x + letterSize / 2, y + letterSize / 2);
+    }
 }
