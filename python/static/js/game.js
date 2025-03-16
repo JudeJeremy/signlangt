@@ -18,6 +18,7 @@ let restartButton;
 let gameOverModal;
 let finalScoreElement;
 let wordsSpelledElement;
+let finalLevelElement;
 let playAgainButton;
 
 // Game state
@@ -26,16 +27,18 @@ let gameState = {
     score: 0,
     lives: 3,
     level: 1,
+    timeRemaining: 60, // seconds
     currentWord: '',
     currentLetterIndex: 0,
     detectedLetters: '',
     wordsSpelled: [],
     lastDetectedLetter: '',
-    lastDetectionTime: 0
+    lastDetectionTime: 0,
+    timerInterval: null
 };
 
 // Constants
-const LETTER_DETECTION_COOLDOWN = 1000; // ms
+const LETTER_DETECTION_COOLDOWN = 800; // ms - increased to make detection more reliable
 const SUPPORTED_LETTERS = ['A', 'B', 'I', 'K', 'W'];
 const POINTS_PER_LETTER = 10;
 const WORD_BONUS_MULTIPLIER = 1.5;
@@ -73,6 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
     gameOverModal = document.getElementById('gameOverModal');
     finalScoreElement = document.getElementById('finalScoreElement');
     wordsSpelledElement = document.getElementById('wordsSpelledElement');
+    finalLevelElement = document.getElementById('finalLevelElement');
     playAgainButton = document.getElementById('playAgainButton');
     
     // Set up game canvas
@@ -99,6 +103,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initial game setup
     resetGame();
     drawStartScreen();
+    
+    // Initialize timer display
+    updateTimerDisplay();
+    
+    console.log("Game initialized");
 });
 
 // Initialize WebSocket connection to the Python backend
@@ -196,18 +205,19 @@ function processDetectedLetter(letter) {
         return;
     }
     
-    // Check if this is a new letter
-    if (letter !== gameState.lastDetectedLetter) {
-        gameState.lastDetectedLetter = letter;
-        gameState.lastDetectionTime = now;
-        
-        // Add letter to detected letters
-        gameState.detectedLetters = letter;
-        detectedLettersElement.textContent = letter;
-        
-        // Check if letter matches the expected letter in the current word
-        checkLetter(letter);
-    }
+    // Always process the letter after cooldown, regardless if it's the same as before
+    gameState.lastDetectedLetter = letter;
+    gameState.lastDetectionTime = now;
+    
+    // Add letter to detected letters display
+    gameState.detectedLetters = letter;
+    detectedLettersElement.textContent = letter;
+    
+    // Check if letter matches the expected letter in the current word
+    checkLetter(letter);
+    
+    // Debug message
+    console.log(`Detected letter: ${letter}`);
 }
 
 // Check if the detected letter matches the expected letter
@@ -340,8 +350,13 @@ function levelUp() {
     gameState.level++;
     levelElement.textContent = gameState.level;
     
+    // Add time bonus for leveling up
+    const timeBonus = 15;
+    gameState.timeRemaining += timeBonus;
+    updateTimerDisplay();
+    
     // Show level up message
-    showLevelUpMessage();
+    showLevelUpMessage(timeBonus);
     
     // Play level up sound
     playSound('levelUp');
@@ -396,9 +411,9 @@ function showErrorMessage() {
 }
 
 // Show level up message
-function showLevelUpMessage() {
+function showLevelUpMessage(timeBonus) {
     const message = document.createElement('div');
-    message.textContent = `LEVEL UP! ${gameState.level}`;
+    message.textContent = `LEVEL UP! ${gameState.level} (+${timeBonus}s)`;
     message.className = 'game-message level-up';
     
     document.querySelector('.game-area').appendChild(message);
@@ -485,6 +500,62 @@ function startGame() {
     
     // Start game loop
     requestAnimationFrame(gameLoop);
+    
+    // Start timer
+    startTimer();
+    
+    console.log("Game started");
+}
+
+// Start the timer
+function startTimer() {
+    // Clear any existing timer
+    if (gameState.timerInterval) {
+        clearInterval(gameState.timerInterval);
+    }
+    
+    // Set up timer interval
+    gameState.timerInterval = setInterval(() => {
+        // Decrease time
+        gameState.timeRemaining--;
+        
+        // Update timer display
+        updateTimerDisplay();
+        
+        // Check if time is up
+        if (gameState.timeRemaining <= 0) {
+            clearInterval(gameState.timerInterval);
+            endGame();
+        }
+    }, 1000);
+    
+    console.log("Timer started");
+}
+
+// Update timer display
+function updateTimerDisplay() {
+    if (timerElement) {
+        // Format time as MM:SS
+        const minutes = Math.floor(gameState.timeRemaining / 60);
+        const seconds = gameState.timeRemaining % 60;
+        const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        // Update display
+        timerElement.textContent = timeString;
+        
+        // Update color based on time remaining
+        if (gameState.timeRemaining <= 10) {
+            timerElement.style.color = '#F44336'; // Red
+        } else if (gameState.timeRemaining <= 30) {
+            timerElement.style.color = '#FFC107'; // Amber
+        } else {
+            timerElement.style.color = '#4CAF50'; // Green
+        }
+        
+        console.log(`Timer updated: ${timeString}`);
+    } else {
+        console.error("Timer element not found");
+    }
 }
 
 // Reset game state
@@ -493,6 +564,7 @@ function resetGame() {
     gameState.score = 0;
     gameState.lives = 3;
     gameState.level = 1;
+    gameState.timeRemaining = 60;
     gameState.currentWord = '';
     gameState.currentLetterIndex = 0;
     gameState.detectedLetters = '';
@@ -500,17 +572,30 @@ function resetGame() {
     gameState.lastDetectedLetter = '';
     gameState.lastDetectionTime = 0;
     
+    // Clear any existing timer
+    if (gameState.timerInterval) {
+        clearInterval(gameState.timerInterval);
+        gameState.timerInterval = null;
+    }
+    
     // Update UI
     scoreElement.textContent = gameState.score;
     levelElement.textContent = gameState.level;
     currentWordElement.innerHTML = '';
     detectedLettersElement.textContent = '';
     updateLivesDisplay();
+    updateTimerDisplay();
 }
 
 // End the game
 function endGame() {
     gameState.isRunning = false;
+    
+    // Clear any existing timer
+    if (gameState.timerInterval) {
+        clearInterval(gameState.timerInterval);
+        gameState.timerInterval = null;
+    }
     
     // Update game over modal with statistics
     finalScoreElement.textContent = gameState.score;
@@ -520,8 +605,15 @@ function endGame() {
         wordsSpelledElement.textContent = gameState.wordsSpelled.length;
     }
     
+    // Update final level
+    if (finalLevelElement) {
+        finalLevelElement.textContent = gameState.level;
+    }
+    
     // Show game over modal
     gameOverModal.style.display = 'flex';
+    
+    console.log("Game ended");
 }
 
 // Game loop

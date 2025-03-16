@@ -78,19 +78,25 @@ header .subtitle {
 }
 
 /* Game UI elements */
-.score-container, .lives-container, .level-container {
+.score-container, .lives-container, .level-container, .timer-container {
     display: flex;
     align-items: center;
 }
 
-.score-label, .lives-label, .level-label {
+.score-label, .lives-label, .level-label, .timer-label {
     margin-right: 10px;
     font-weight: bold;
 }
 
-.score-value, .lives-value, .level-value {
+.score-value, .lives-value, .level-value, .timer-value {
     font-size: 1.2em;
     font-weight: bold;
+}
+
+.timer-value {
+    color: var(--success-color);
+    min-width: 60px;
+    text-align: center;
 }
 
 .lives-value {
