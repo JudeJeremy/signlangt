@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Initialize WebSocket connection to the Python backend
 function initWebSocket() {
-    socket = io('http://localhost:5000');
+    socket = io('https://singlangt.onrender.com/');
     
     // Connection opened
     socket.on('connect', () => {
