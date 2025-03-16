@@ -1,0 +1,15 @@
+{
+  "name": "Sign Language Game",
+  "description": "A web app that transcribes sign language into English and offers a spelling game",
+  "repository": "https://github.com/yourusername/signlangt",
+  "keywords": ["python", "flask", "mediapipe", "sign-language", "game"],
+  "buildpacks": [
+    {
+      "url": "https://github.com/heroku/heroku-buildpack-apt"
+    },
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "stack": "heroku-24"
+}
