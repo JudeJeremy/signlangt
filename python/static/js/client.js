@@ -6,15 +6,9 @@ let statusElement;
 let transcriptionOutput;
 let clearButton;
 let confidenceElement;
-let clientFpsElement;
 
 // Socket connection
 let socket;
-
-// FPS tracking variables
-let frameCount = 0;
-let lastFrameTime = 0;
-let clientFps = 0;
 
 // Wait for DOM to load before accessing elements
 document.addEventListener('DOMContentLoaded', function() {
@@ -26,7 +20,6 @@ document.addEventListener('DOMContentLoaded', function() {
     transcriptionOutput = document.getElementById('transcriptionOutput');
     clearButton = document.getElementById('clearButton');
     confidenceElement = document.getElementById('confidenceElement');
-    clientFpsElement = document.getElementById('clientFpsElement');
     
     // Set canvas dimensions
     canvasElement.width = 640;
@@ -44,8 +37,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Initialize WebSocket connection to the Python backend
 function initWebSocket() {
-    // Connect to the server without specifying a URL - this will connect to the host that served the page
-    socket = io();
+    socket = io('http://localhost:5000');
     
     // Connection opened
     socket.on('connect', () => {
@@ -59,16 +51,6 @@ function initWebSocket() {
     
     // Handle incoming frames and tracking data
     socket.on('frame', (data) => {
-        // Calculate client FPS
-        const now = performance.now();
-        frameCount++;
-        
-        if (now - lastFrameTime >= 1000) { // Update FPS every second
-            clientFps = Math.round((frameCount * 1000) / (now - lastFrameTime));
-            frameCount = 0;
-            lastFrameTime = now;
-        }
-        
         // Update video frame
         const img = new Image();
         img.onload = () => {
@@ -77,9 +59,6 @@ function initWebSocket() {
             
             // Draw hand position guide
             drawHandGuide();
-            
-            // Draw client FPS
-            drawFpsInfo(data.server_fps || 0);
         };
         img.src = 'data:image/jpeg;base64,' + data.frame;
         
@@ -171,19 +150,4 @@ function drawHandGuide() {
     
     // Reset line dash
     ctx.setLineDash([]);
-}
-
-// Draw FPS information
-function drawFpsInfo(serverFps) {
-    const ctx = canvasCtx;
-    
-    // Draw client FPS
-    ctx.font = '16px Arial';
-    ctx.fillStyle = '#4CAF50';
-    ctx.fillText(`Client FPS: ${clientFps}`, 10, 60);
-    
-    // Update FPS display in the stats container if it exists
-    if (clientFpsElement) {
-        clientFpsElement.textContent = `Client: ${clientFps} FPS | Server: ${serverFps} FPS`;
-    }
 }

@@ -1,123 +1,116 @@
-/* Base styles */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
+body { 
     font-family: Arial, sans-serif;
-    line-height: 1.6;
-    background-color: #f0f2f5;
-    color: #333;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
-
 .container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-}
-
-/* Header */
-header {
-    text-align: center;
-    margin-bottom: 30px;
-}
-
-h1 {
-    color: #2c3e50;
-    font-size: 2.5em;
-    margin-bottom: 10px;
-}
-
-.subtitle {
-    color: #7f8c8d;
-    font-size: 1.2em;
-}
-
-/* Main content layout */
-main {
-    display: grid;
-    grid-template-columns: 1fr 300px;
-    gap: 20px;
-}
-
-/* Video container */
-.video-container {
-    grid-column: 1;
-    background: #fff;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-#canvasElement {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     width: 100%;
-    border-radius: 5px;
+    max-width: 800px;
+}
+.video-container {
+    position: relative;
+    width: 640px;
+    height: 480px;
+    margin-bottom: 20px;
+}
+#videoElement {
+    position: absolute;
+    width: 100%;
+    height: 100%;
     background-color: #000;
+    border: 2px solid black;
 }
-
-/* Status and confidence display */
-.status-container {
-    margin-top: 15px;
+#canvasElement {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
 }
-
-.status {
-    padding: 10px;
+.transcription-container {
+    width: 640px;
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f0f8ff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+#transcriptionOutput {
+    width: 100%;
+    min-height: 120px;
+    border: 1px solid #ccc;
+    padding: 15px;
+    font-size: 24px;
+    background-color: #ffffff;
     border-radius: 5px;
-    margin-bottom: 10px;
-    font-weight: bold;
+    line-height: 1.4;
+    font-family: 'Arial', sans-serif;
+    letter-spacing: 0.5px;
+}
+.status {
+    margin-top: 10px;
+    color: #666;
+}
+.controls {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+}
+button {
+    padding: 8px 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+button:hover {
+    background-color: #45a049;
 }
 
+/* Status styles */
+.status {
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-top: 10px;
+    font-size: 14px;
+}
 .status.success {
     background-color: #d4edda;
     color: #155724;
 }
-
+.status.info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
 .status.error {
     background-color: #f8d7da;
     color: #721c24;
-}
-
-.status.info {
-    background-color: #e2e3e5;
-    color: #383d41;
-}
-
-/* FPS display */
-.fps-display {
-    background-color: #343a40;
-    color: #4CAF50;
-    padding: 8px 12px;
-    border-radius: 5px;
-    font-family: monospace;
-    font-size: 14px;
-    margin-bottom: 10px;
-    display: inline-block;
-    font-weight: bold;
 }
 
 /* Confidence meter */
 .confidence-bar {
     display: flex;
     align-items: center;
-    gap: 10px;
     margin-top: 10px;
 }
-
 .confidence-label {
-    min-width: 80px;
-    font-weight: bold;
+    margin-right: 10px;
+    font-size: 14px;
+    color: #666;
 }
-
 .confidence-meter {
-    flex-grow: 1;
-    height: 20px;
-    background-color: #e9ecef;
-    border-radius: 10px;
+    width: 200px;
+    height: 10px;
+    background-color: #e0e0e0;
+    border-radius: 5px;
     overflow: hidden;
 }
-
 .confidence-level {
     height: 100%;
     width: 0%;
@@ -125,99 +118,62 @@ main {
     transition: width 0.3s ease, background-color 0.3s ease;
 }
 
-/* Transcription container */
-.transcription-container {
-    background: #fff;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+/* Header and footer */
+header {
+    margin-bottom: 20px;
+    text-align: center;
+}
+h1 {
+    margin-bottom: 5px;
+    color: #333;
+}
+.subtitle {
+    color: #666;
+    margin-top: 0;
+}
+footer {
+    margin-top: 30px;
+    color: #666;
+    font-size: 14px;
+    text-align: center;
 }
 
-.transcription-output {
-    min-height: 100px;
-    margin: 15px 0;
-    padding: 15px;
-    background-color: #f8f9fa;
-    border-radius: 5px;
-    font-size: 1.2em;
-    line-height: 1.4;
+/* Status container */
+.status-container {
+    margin-top: 10px;
+    width: 100%;
 }
 
 /* Guide container */
 .guide-container {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-    background: #fff;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.guide-container h2 {
-    color: #2c3e50;
-    margin-bottom: 15px;
-}
-
-.guide-container p {
-    margin-bottom: 15px;
-    color: #555;
-}
-
-.tips {
     margin-top: 20px;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    width: 640px;
 }
-
-.tips h3 {
-    color: #2c3e50;
-    margin-bottom: 10px;
+.guide-container h2 {
+    margin-top: 0;
+    color: #333;
 }
-
-.tips ul {
-    list-style-position: inside;
-    color: #555;
-}
-
-.tips li {
-    margin-bottom: 8px;
-}
-
-/* Controls */
-.controls {
+.tips {
     margin-top: 15px;
-    text-align: right;
+}
+.tips h3 {
+    margin-bottom: 5px;
+    color: #333;
+}
+.tips ul {
+    margin-top: 5px;
+    padding-left: 20px;
+}
+.tips li {
+    margin-bottom: 5px;
 }
 
-.clear-button {
-    background-color: #6c757d;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.clear-button:hover {
-    background-color: #5a6268;
-}
-
-/* Footer */
-footer {
-    text-align: center;
-    margin-top: 30px;
-    padding: 20px;
-    color: #6c757d;
-    border-top: 1px solid #dee2e6;
-}
-
-/* Responsive design */
-@media (max-width: 900px) {
-    main {
-        grid-template-columns: 1fr;
-    }
-    
-    .guide-container {
-        grid-column: 1;
-        grid-row: auto;
+/* Responsive adjustments */
+@media (max-width: 700px) {
+    .video-container, .transcription-container, .guide-container {
+        width: 100%;
     }
 }

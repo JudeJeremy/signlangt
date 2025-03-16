@@ -27,14 +27,10 @@ hand_tracker = HandTracker()
 print("Hand tracker initialized. Using MediaPipe GestureRecognizer:", 
       "Yes" if hand_tracker.use_gesture_recognizer else "No (falling back to custom detection)")
 
-# Routes to serve the applications
+# Route to serve the main application
 @app.route('/')
 def index():
     return render_template('index.html')
-
-@app.route('/game')
-def game():
-    return render_template('game.html')
 
 @socketio.on('connect')
 def handle_connect():

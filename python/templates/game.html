@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Slayer - ASL Monster Game</title>
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/game.css') }}">
+    <!-- Socket.IO -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <!-- Game JS -->
+    <script src="{{ url_for('static', filename='js/game.js') }}"></script>
+</head>
+<body>
+    <div class="container game-container">
+        <header>
+            <h1>Sign Slayer</h1>
+            <p class="subtitle">Defeat monsters with ASL signs!</p>
+        </header>
+        
+        <main>
+            <div class="game-area">
+                <!-- Video and canvas for hand tracking -->
+                <div class="video-container">
+                    <video id="videoElement" autoplay style="display: none;"></video>
+                    <canvas id="canvasElement"></canvas>
+                    <div class="status-container">
+                        <div class="status" id="statusElement">Initializing hand tracking...</div>
+                        <div class="confidence-bar">
+                            <div class="confidence-label">Confidence:</div>
+                            <div class="confidence-meter">
+                                <div id="confidenceElement" class="confidence-level"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Game canvas -->
+                <canvas id="gameCanvas"></canvas>
+                
+                <!-- Game UI -->
+                <div class="game-ui">
+                    <div class="score-container">
+                        <div class="score-label">Score:</div>
+                        <div id="scoreElement" class="score-value">0</div>
+                    </div>
+                    <div class="health-container">
+                        <div class="health-label">Health:</div>
+                        <div class="health-bar">
+                            <div id="healthElement" class="health-level"></div>
+                        </div>
+                    </div>
+                    <div class="level-container">
+                        <div class="level-label">Level:</div>
+                        <div id="levelElement" class="level-value">1</div>
+                    </div>
+                </div>
+                
+                <!-- Current word display -->
+                <div class="word-container">
+                    <div class="word-label">Current Word:</div>
+                    <div id="currentWordElement" class="word-value"></div>
+                </div>
+                
+                <!-- Detected letters display -->
+                <div class="letters-container">
+                    <div class="letters-label">Detected:</div>
+                    <div id="detectedLettersElement" class="letters-value"></div>
+                </div>
+            </div>
+            
+            <!-- Game controls -->
+            <div class="game-controls">
+                <button id="startButton" class="game-button">Start Game</button>
+                <button id="restartButton" class="game-button" style="display: none;">Restart Game</button>
+            </div>
+            
+            <!-- Game instructions -->
+            <div class="instructions-container">
+                <h2>How to Play</h2>
+                <p>Monsters with words will approach from the right. Sign the letters of each word in order to defeat the monsters before they reach you!</p>
+                <p>Currently supported letters: A, B, K, W</p>
+                <div class="tips">
+                    <h3>Tips:</h3>
+                    <ul>
+                        <li>Keep your hand steady for better recognition</li>
+                        <li>Face your palm towards the camera</li>
+                        <li>Ensure all fingers are visible</li>
+                        <li>Wait for high confidence scores (green) for best results</li>
+                    </ul>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Game over modal -->
+        <div id="gameOverModal" class="modal">
+            <div class="modal-content">
+                <h2>Game Over!</h2>
+                <p>Your final score: <span id="finalScoreElement">0</span></p>
+                <button id="playAgainButton" class="game-button">Play Again</button>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Supported Letters: A, B, K, W in American Sign Language</p>
+        </footer>
+    </div>
+</body>
+</html>

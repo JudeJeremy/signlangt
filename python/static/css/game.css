@@ -1,0 +1,244 @@
+/* Game-specific styles */
+
+.game-container {
+    max-width: 1200px;
+}
+
+.game-area {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.video-container {
+    position: relative;
+    width: 320px;
+    height: 240px;
+    margin-bottom: 10px;
+    border: 2px solid #333;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+#gameCanvas {
+    width: 800px;
+    height: 400px;
+    border: 2px solid #333;
+    border-radius: 8px;
+    background-color: #f0f0f0;
+    margin-bottom: 10px;
+}
+
+.game-ui {
+    display: flex;
+    justify-content: space-between;
+    width: 800px;
+    margin-bottom: 10px;
+    padding: 10px;
+    background-color: #333;
+    border-radius: 8px;
+    color: white;
+}
+
+.score-container, .health-container, .level-container {
+    display: flex;
+    align-items: center;
+}
+
+.score-label, .health-label, .level-label {
+    margin-right: 10px;
+    font-weight: bold;
+}
+
+.score-value, .level-value {
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+.health-bar {
+    width: 150px;
+    height: 20px;
+    background-color: #555;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.health-level {
+    width: 100%;
+    height: 100%;
+    background-color: #4CAF50;
+    transition: width 0.3s ease;
+}
+
+.word-container, .letters-container {
+    display: flex;
+    align-items: center;
+    width: 800px;
+    margin-bottom: 10px;
+    padding: 10px;
+    background-color: #f0f0f0;
+    border-radius: 8px;
+}
+
+.word-label, .letters-label {
+    margin-right: 10px;
+    font-weight: bold;
+}
+
+.word-value, .letters-value {
+    font-size: 1.5em;
+    font-weight: bold;
+    letter-spacing: 5px;
+}
+
+.game-controls {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.game-button {
+    padding: 10px 20px;
+    margin: 0 10px;
+    font-size: 1.2em;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.game-button:hover {
+    background-color: #45a049;
+}
+
+.instructions-container {
+    width: 800px;
+    margin: 0 auto 20px;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.instructions-container h2 {
+    margin-top: 0;
+    color: #333;
+}
+
+.tips {
+    margin-top: 15px;
+}
+
+.tips h3 {
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.tips ul {
+    margin-top: 5px;
+    padding-left: 20px;
+}
+
+.tips li {
+    margin-bottom: 5px;
+}
+
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.7);
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 30px;
+    border-radius: 10px;
+    text-align: center;
+    max-width: 500px;
+    width: 80%;
+}
+
+.modal-content h2 {
+    margin-top: 0;
+    color: #333;
+}
+
+/* Monster styles */
+.monster {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    background-color: #ff6b6b;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: white;
+    font-size: 1.2em;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* Letter highlight styles */
+.letter-correct {
+    color: #4CAF50;
+}
+
+.letter-current {
+    color: #2196F3;
+    text-decoration: underline;
+}
+
+.letter-pending {
+    color: #333;
+}
+
+/* Animation for monsters */
+@keyframes monsterShake {
+    0% { transform: translateY(0); }
+    25% { transform: translateY(-5px); }
+    50% { transform: translateY(0); }
+    75% { transform: translateY(5px); }
+    100% { transform: translateY(0); }
+}
+
+.monster-shake {
+    animation: monsterShake 0.5s infinite;
+}
+
+/* Animation for successful letter recognition */
+@keyframes letterPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.letter-pulse {
+    animation: letterPulse 0.5s;
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+    #gameCanvas {
+        width: 100%;
+        max-width: 800px;
+    }
+    
+    .game-ui, .word-container, .letters-container, .instructions-container {
+        width: 100%;
+        max-width: 800px;
+    }
+}
